@@ -24,7 +24,8 @@ const FileUpload = ({ setAnalysisData }) => {
 
       try {
         const response = await axios.post("http://localhost:5000/upload", formData);
-        setAnalysisData(response.data);
+        console.log(response.data); // Log the response to check structure
+        setAnalysisData(response.data.analysis); // Make sure you're passing analysis data
       } catch (err) {
         setError("Failed to process file. Please try again.");
       } finally {
