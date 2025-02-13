@@ -1,7 +1,8 @@
 require("dotenv").config();
 const express = require("express");
 const multer = require("multer");
-const axios = require("axios");
+const Tesseract = require("tesseract.js");
+const pdfParse = require("pdf-parse");
 const cors = require("cors");
 const fs = require("fs");
 
@@ -11,64 +12,72 @@ const PORT = 5000;
 app.use(cors());
 app.use(express.json());
 
+// Set up Multer for file uploads
 const upload = multer({ dest: "uploads/" });
 
-// Upload and process PDF
+// File processing route
 app.post("/upload", upload.single("file"), async (req, res) => {
-  try {
     if (!req.file) return res.status(400).json({ error: "No file uploaded" });
 
-    // Read file
-    const fileBuffer = fs.readFileSync(req.file.path);
+    const filePath = req.file.path;
+    let extractedText = "";
 
-    // Call Azure Document Intelligence API
-    const azureResponse = await axios.post(
-      `${process.env.AZURE_ENDPOINT}/formrecognizer/documentModels/prebuilt-read:analyze?api-version=2023-07-31`,
-      fileBuffer,
-      {
-        headers: {
-          "Ocp-Apim-Subscription-Key": process.env.AZURE_KEY,
-          "Content-Type": "application/pdf",
-        },
-      }
-    );
+    try {
+        if (req.file.mimetype === "application/pdf") {
+            // Extract text from PDF
+            const dataBuffer = fs.readFileSync(filePath);
+            const pdfData = await pdfParse(dataBuffer);
+            extractedText = pdfData.text;
+        } else {
+            // Perform OCR on scanned images (JPG, PNG, etc.)
+            const { data } = await Tesseract.recognize(filePath, "eng");
+            extractedText = data.text;
+        }
 
-    const textData = azureResponse.data.analyzeResult.content;
-    const analysis = analyzeText(textData);
+        fs.unlinkSync(filePath); // Remove uploaded file after processing
+        const analysis = analyzeText(extractedText);
 
-    res.json(analysis);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to process document" });
-  }
+        res.json({ text: extractedText, analysis });
+    } catch (error) {
+        console.error("Error processing document:", error);
+        res.status(500).json({ error: "Error processing document", details: error.message });
+    }
 });
 
-// Text analysis function
+// Function to analyze extracted text
 function analyzeText(text) {
-  const words = text.match(/\b\w+\b/g) || [];
-  const sentences = text.match(/[^.!?]+[.!?]+/g) || [];
-  const wordCount = words.length;
-  const charCount = text.length;
-  const charCountNoSpaces = text.replace(/\s/g, "").length;
-  const avgWordLength = wordCount ? charCountNoSpaces / wordCount : 0;
+    const words = text.match(/\b\w+\b/g) || [];
+    const sentences = text.match(/[^.!?]+[.!?]+/g) || [];
+    const wordCount = words.length;
+    const charCount = text.length;
+    const charCountNoSpaces = text.replace(/\s/g, "").length;
+    const avgWordLength = wordCount ? (charCountNoSpaces / wordCount).toFixed(2) : 0;
 
-  const wordFreq = words.reduce((acc, word) => {
-    word = word.toLowerCase();
-    acc[word] = (acc[word] || 0) + 1;
-    return acc;
-  }, {});
+    // Word frequency analysis
+    const wordFreq = {};
+    words.forEach(word => {
+        const lowerWord = word.toLowerCase();
+        wordFreq[lowerWord] = (wordFreq[lowerWord] || 0) + 1;
+    });
 
-  const sortedFreq = Object.entries(wordFreq)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 20);
+    // Exclude common stop words
+    const stopWords = new Set([
+        "the", "and", "a", "an", "of", "to", "in", "on", "for", "with", "this", "that", "it", "is", "was", "were", "be", "been"
+    ]);
 
-  return {
-    wordCount,
-    charCount,
-    charCountNoSpaces,
-    sentenceCount: sentences.length,
-    avgWordLength,
-    wordFrequency: sortedFreq,
-  };
+    const filteredWordFreq = Object.entries(wordFreq)
+        .filter(([word]) => !stopWords.has(word))
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 20); // Get top 20 frequent words, excluding stop words
+
+    return {
+        wordCount,
+        charCount,
+        charCountNoSpaces,
+        sentenceCount: sentences.length,
+        avgWordLength,
+        topWords: filteredWordFreq
+    };
 }
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
