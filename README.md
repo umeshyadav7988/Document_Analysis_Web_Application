@@ -1,11 +1,11 @@
 # 📄 Document Analysis Web Application
 
-##  Overview
-The **Document Analysis Web Application** allows users to upload scanned PDFs and extract text-based insights using **Azure Document Intelligence API**. The application provides various document statistics and word frequency analysis in a user-friendly interface.
+## Overview
+The **Document Analysis Web Application** allows users to upload scanned PDFs and extract text-based insights using **Tesseract.js OCR**. The application provides various document statistics and word frequency analysis in a user-friendly interface.
 
 ## 🛠 Features
 ### ✅ Frontend:
-- **Drag-and-drop file upload** (Supports PDF only)
+- **Drag-and-drop file upload** (Supports PDF and images)
 - **Document statistics**:
   - Word count
   - Character count (with and without spaces)
@@ -18,15 +18,15 @@ The **Document Analysis Web Application** allows users to upload scanned PDFs an
 - **Responsive UI** (Mobile & desktop-friendly)
 
 ### ✅ Backend:
-- **File validation** (Ensures only PDFs are uploaded)
-- **Azure Document Intelligence API Integration** (OCR for text extraction)
+- **File validation** (Ensures only PDFs and images are uploaded)
+- **Tesseract.js Integration** (OCR for text extraction)
 - **Text analysis computation** (Statistics & word frequency)
 - **RESTful API endpoints** with proper error handling
 
 ## 📂 Repository Structure
 ```
 Document_Analysis_Web_Application/
-│── backend/               # Node.js backend with Azure API integration
+│── backend/               # Node.js backend with Tesseract.js OCR
 │── frontend/              # React frontend for UI
 │── public/                # Static assets
 │── src/                   # Frontend components
@@ -58,8 +58,6 @@ npm install
 ### **3️⃣ Setup Environment Variables**
 Create a **.env** file in the `backend` directory and add the following:
 ```
-AZURE_API_KEY=your_azure_api_key
-AZURE_ENDPOINT=your_azure_endpoint
 PORT=5000
 ```
 
@@ -78,16 +76,16 @@ npm start
 ## 🔗 API Endpoints
 | Method | Endpoint          | Description |
 |--------|------------------|-------------|
-| POST   | `/upload`        | Uploads a PDF and extracts text |
+| POST   | `/upload`        | Uploads a document and extracts text |
 | GET    | `/analysis`      | Returns text statistics & word frequency |
 
 ## ⚖️ Design Decisions & Trade-offs
-- **Azure Document Intelligence API** was chosen for **high accuracy OCR**.
+- **Tesseract.js** was chosen for **client-side OCR processing**.
 - **In-memory processing** instead of database storage to keep it lightweight.
-- **Excludes handwritten text recognition** due to API limitations.
+- **Handles both PDFs and images** for OCR.
 - **No authentication** as this is a standalone document analysis tool.
 
-##  Future Improvements
+## Future Improvements
 - ✅ Support for **multi-file upload**
 - ✅ **Downloadable reports** (PDF/CSV)
 - ✅ **Advanced NLP analysis** (Sentiment, named entity recognition)
