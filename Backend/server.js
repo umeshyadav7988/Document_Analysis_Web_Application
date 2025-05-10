@@ -5,17 +5,14 @@ const Tesseract = require("tesseract.js");
 const pdfParse = require("pdf-parse");
 const cors = require("cors");
 const fs = require("fs");
-
 const app = express();
 const PORT = 5000;
 
 app.use(cors());
 app.use(express.json());
 
-// Set up Multer for file uploads
 const upload = multer({ dest: "uploads/" });
 
-// File processing route
 app.post("/upload", upload.single("file"), async (req, res) => {
     if (!req.file) return res.status(400).json({ error: "No file uploaded" });
 
